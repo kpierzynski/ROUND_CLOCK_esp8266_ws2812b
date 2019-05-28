@@ -21,7 +21,11 @@
 /* */
 #define LED_COUNT 60
 #define NTP_REFRESH 16
-#define TIMER_FREQ_HZ 1
+#define TIMER_FREQ_HZ 3
+
+#define HOUR_COLOR 32,0,0
+#define MINUTE_COLOR 0,4,0
+#define SECOND_COLOR 0,0,16
 /* */
 
 /* Variables */
@@ -46,22 +50,25 @@ ws2812_pixel_t color_add( ws2812_pixel_t a, ws2812_pixel_t b) {
 /* Timer for updating clock */
 void clock_update( void * arg ) {
     /* Time refresh */
-    ts = time(NULL);
-    tms = localtime(&ts);
+    ts = time( NULL );
+    tms = localtime( &ts );
+
+    uint8_t i;
     /* */
 
     /* Debug time printf */
-    printf("TIME: %d %d %d\n", tms->tm_hour, tms->tm_min, tms->tm_sec );
+    printf( "TIME: %d %d %d\n", tms->tm_hour, tms->tm_min, tms->tm_sec );
     /* */
     
     /* Clear all leds */
-    memset(pixels, 0, sizeof(ws2812_pixel_t) * LED_COUNT );
+    memset( pixels, 0, sizeof(ws2812_pixel_t) * LED_COUNT );
     /* */
 
     /* Turn on diodes based on time */
-    pixels[(((tms->tm_hour*5) % LED_COUNT)+(tms->tm_min/15)) % LED_COUNT] = color_set(32,0,0);
-    pixels[tms->tm_min % LED_COUNT] = color_add(color_set(0,8,0), pixels[tms->tm_min]);
-    pixels[tms->tm_sec % LED_COUNT] = color_add(color_set(0,0,16),pixels[tms->tm_sec]);
+    uint8_t indexs[3] = { (((tms->tm_hour*5) % LED_COUNT)+(tms->tm_min/15)) % LED_COUNT, tms->tm_min % LED_COUNT, tms->tm_sec % LED_COUNT };
+    ws2812_pixel_t colors[3] = { color_set(HOUR_COLOR), color_set(MINUTE_COLOR), color_set(SECOND_COLOR) };
+    
+    for( i = 0; i < 3; i++ ) pixels[indexs[i]] = color_add( colors[i], pixels[indexs[i]]);
     /* */
 
     /* Push data to leds */
@@ -135,7 +142,7 @@ void user_init(void)
     /* */
 
     /* Create task for configuration */
-    xTaskCreate(&configuration, "configuration", 1024, NULL, 1 | portPRIVILEGE_BIT, NULL);
+    xTaskCreate(&configuration, "configuration", 2048, NULL, 1 | portPRIVILEGE_BIT, NULL);
     /* */
 }
 /* */
